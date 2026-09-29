@@ -115,14 +115,16 @@
         <section id="projects" class="section">
             <div class="container">
                 <h2>Projets récents</h2>
-                <div class="carousel-wrapper">
-                    <div class="carousel">
-                        <div class="carousel-viewport" role="region" aria-label="Carousel de projets">
-                            <button class="carousel-btn prev" aria-label="Projet précédent">‹</button>
-                            <div id="projects-grid" class="carousel-track" aria-live="polite" role="list"></div>
-                            <button class="carousel-btn next" aria-label="Projet suivant">›</button>
+                <div class="carousel-shell">
+                    <button class="carousel-btn prev" aria-label="Projet précédent">‹</button>
+                    <div class="carousel-wrapper">
+                        <div class="carousel">
+                            <div class="carousel-viewport" role="region" aria-label="Carousel de projets">
+                                <div id="projects-grid" class="carousel-track" aria-live="polite" role="list"></div>
+                            </div>
                         </div>
                     </div>
+                    <button class="carousel-btn next" aria-label="Projet suivant">›</button>
                 </div>
             </div>
             <template id="project-template">

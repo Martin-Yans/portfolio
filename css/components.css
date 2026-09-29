@@ -437,12 +437,18 @@
 /* COMPONENTS: Carousel                                                       */
 /* ══════════════════════════════════════════════════════════════════════════ */
 
-.carousel-wrapper {
-  position: relative;
+.carousel-shell {
   display: flex;
   align-items: center;
   width: 100%;
   gap: var(--spacing-sm);
+}
+
+.carousel-wrapper {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .carousel {
@@ -496,32 +502,32 @@
 }
 
 .carousel-btn {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 50;
   flex: 0 0 44px;
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  border: none;
-  background: #212529;
-  color: var(--color-text-primary);
-  font-size: 18px;
+  border: 1px solid var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-bg-primary);
+  font-size: 24px;
   font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.15s ease-out, box-shadow 0.15s ease-out;
+  transition: background-color 0.15s ease-out, box-shadow 0.15s ease-out, transform 0.15s ease-out;
   -webkit-tap-highlight-color: transparent;
-  outline: none;
   -webkit-appearance: none;
   appearance: none;
 }
 
-.carousel-btn:active {
-  background: #1a1a1a;
+.carousel-btn:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+  box-shadow: var(--shadow-sm);
+}
+
+.carousel-btn:active:not(:disabled) {
+  transform: scale(0.96);
 }
 
 .carousel-btn:focus-visible {
@@ -532,16 +538,6 @@
 .carousel-btn:disabled {
   opacity: 0.4;
   cursor: default;
-}
-
-.carousel-viewport .carousel-btn.next {
-  right: var(--page-h-margin);
-  transform: translateX(-10%);
-}
-
-.carousel-viewport .carousel-btn.prev {
-  left: var(--page-h-margin);
-    transform: translateX(10%);
 }
 
 /* ══════════════════════════════════════════════════════════════════════════ */
@@ -923,6 +919,12 @@
 /* ══════════════════════════════════════════════════════════════════════════ */
 /* COMPONENTS: Project Description & Carousel Responsive Adjustments          */
 /* ══════════════════════════════════════════════════════════════════════════ */
+
+@media (min-width: 776px) and (max-width: 900px) {
+  .carousel-track .project-card {
+    flex-basis: calc(66.6667% - 1.3333rem);
+  }
+}
 
 @media (max-width: 775px) {
   .project-desc {

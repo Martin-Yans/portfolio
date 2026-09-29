@@ -12,9 +12,10 @@ export class CarouselController {
     this.viewport = this.carouselEl.querySelector('.carousel-track');
     if (!this.viewport) return;
 
+    this.controlsEl = this.carouselEl.closest('.carousel-shell') || this.carouselEl;
     this.scroller = this.findScrollable(this.viewport);
-    this.prevBtn = this.carouselEl.querySelector('.carousel-btn.prev');
-    this.nextBtn = this.carouselEl.querySelector('.carousel-btn.next');
+    this.prevBtn = this.controlsEl.querySelector('.carousel-btn.prev');
+    this.nextBtn = this.controlsEl.querySelector('.carousel-btn.next');
     this.prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     this.cachedScrollAmount = null;
