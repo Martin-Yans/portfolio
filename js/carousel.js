@@ -24,6 +24,7 @@ export class CarouselController {
     this.maxScroll = 0;
     this.isMobile = false;
     this.scrollDuration = 0;
+    this.centeredCard = null;
 
     this.isDragging = false;
     this.dragStartX = 0;
@@ -100,12 +101,34 @@ export class CarouselController {
   }
 
   updateButtons() {
+    this.updateCenteredCard();
+
     const threshold = 5;
     if (this.prevBtn) this.prevBtn.disabled = this.scroller.scrollLeft <= threshold;
     if (this.nextBtn) {
       this.nextBtn.disabled = 
         this.scroller.scrollLeft + this.scroller.clientWidth >= this.scroller.scrollWidth - threshold;
     }
+  }
+
+  updateCenteredCard() {
+    const cards = Array.from(this.scroller.querySelectorAll('.project-card'));
+    if (!cards.length) return;
+
+    const viewportCenter = this.scroller.getBoundingClientRect().left + this.scroller.clientWidth / 2;
+    const centeredCard = cards.reduce((closest, card) => {
+      const cardRect = card.getBoundingClientRect();
+      const closestRect = closest.getBoundingClientRect();
+      return Math.abs(cardRect.left + cardRect.width / 2 - viewportCenter)
+        < Math.abs(closestRect.left + closestRect.width / 2 - viewportCenter)
+        ? card
+        : closest;
+    });
+
+    if (centeredCard === this.centeredCard) return;
+    this.centeredCard?.classList.remove('is-centered');
+    centeredCard.classList.add('is-centered');
+    this.centeredCard = centeredCard;
   }
 
   throttledUpdateButtons = (() => {
