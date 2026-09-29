@@ -42,7 +42,7 @@ export class CarouselController {
   }
 
   recalculateLayout() {
-    this.maxScroll = this.scroller.scrollWidth - this.scroller.clientWidth;
+    this.maxScroll = Math.max(0, this.scroller.scrollWidth - this.scroller.clientWidth);
     this.isMobile = window.innerWidth < 1000;
     this.scrollDuration = this.isMobile ? 350 : 300;
     this.updateButtons();
@@ -75,17 +75,30 @@ export class CarouselController {
   }
 
   handleScrollButton(direction) {
-    if (this.prefersReducedMotion) return;
-    
     if (this.rafId) cancelAnimationFrame(this.rafId);
     this.rafId = null;
     this.velocity = 0;
     
-    const amount = this.getScrollAmount();
-    if (amount === 0) return;
-    const newTarget = this.scroller.scrollLeft + direction * amount;
+    const cards = Array.from(this.scroller.querySelectorAll('.project-card'));
+    if (!cards.length) return;
+
+    this.maxScroll = Math.max(0, this.scroller.scrollWidth - this.scroller.clientWidth);
+    const viewportCenter = this.scroller.getBoundingClientRect().left + this.scroller.clientWidth / 2;
+    const currentIndex = this.getCenteredCardIndex(cards);
+    const targetIndex = Math.max(0, Math.min(currentIndex + direction, cards.length - 1));
+    const targetRect = cards[targetIndex].getBoundingClientRect();
+    const targetCenter = targetRect.left + targetRect.width / 2;
+    const newTarget = this.scroller.scrollLeft + targetCenter - viewportCenter;
     this.targetScroll = Math.max(0, Math.min(newTarget, this.maxScroll));
-    if (Math.abs(this.targetScroll - this.scroller.scrollLeft) > 1) this.startRAF();
+    if (Math.abs(this.targetScroll - this.scroller.scrollLeft) <= 1) return;
+
+    if (this.prefersReducedMotion) {
+      this.scroller.scrollLeft = this.targetScroll;
+      this.updateButtons();
+      return;
+    }
+
+    this.startRAF();
   }
 
   setupButtons() {
@@ -109,6 +122,21 @@ export class CarouselController {
     }
   }
 
+  getCenteredCardIndex(cards) {
+    if (this.scroller.scrollLeft <= 5) return 0;
+    if (this.scroller.scrollLeft >= this.maxScroll - 5) return cards.length - 1;
+
+    const viewportCenter = this.scroller.getBoundingClientRect().left + this.scroller.clientWidth / 2;
+    return cards.reduce((closestIndex, card, index) => {
+      const cardRect = card.getBoundingClientRect();
+      const closestRect = cards[closestIndex].getBoundingClientRect();
+      return Math.abs(cardRect.left + cardRect.width / 2 - viewportCenter)
+        < Math.abs(closestRect.left + closestRect.width / 2 - viewportCenter)
+        ? index
+        : closestIndex;
+    }, 0);
+  }
+
   updateCenteredCard() {
     const cards = Array.from(this.scroller.querySelectorAll('.project-card'));
     if (window.innerWidth >= 600 || !cards.length) {
@@ -117,15 +145,7 @@ export class CarouselController {
       return;
     }
 
-    const viewportCenter = this.scroller.getBoundingClientRect().left + this.scroller.clientWidth / 2;
-    const centeredCard = cards.reduce((closest, card) => {
-      const cardRect = card.getBoundingClientRect();
-      const closestRect = closest.getBoundingClientRect();
-      return Math.abs(cardRect.left + cardRect.width / 2 - viewportCenter)
-        < Math.abs(closestRect.left + closestRect.width / 2 - viewportCenter)
-        ? card
-        : closest;
-    });
+    const centeredCard = cards[this.getCenteredCardIndex(cards)];
 
     if (centeredCard === this.centeredCard) return;
     this.centeredCard?.classList.remove('is-centered');
