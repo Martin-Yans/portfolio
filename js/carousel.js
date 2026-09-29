@@ -36,9 +36,6 @@ export class CarouselController {
     this.velocity = 0;
     this.clickedCard = null;
 
-    this.friction = 0.99;
-    this.minVelocity = 0.5;
-
     this.init();
     this.recalculateLayout();
   }
@@ -113,7 +110,11 @@ export class CarouselController {
 
   updateCenteredCard() {
     const cards = Array.from(this.scroller.querySelectorAll('.project-card'));
-    if (!cards.length) return;
+    if (window.innerWidth >= 600 || !cards.length) {
+      this.centeredCard?.classList.remove('is-centered');
+      this.centeredCard = null;
+      return;
+    }
 
     const viewportCenter = this.scroller.getBoundingClientRect().left + this.scroller.clientWidth / 2;
     const centeredCard = cards.reduce((closest, card) => {
@@ -254,7 +255,7 @@ export class CarouselController {
     const now = performance.now();
     const dx = e.clientX - this.lastX;
     const dt = Math.max(1, now - this.lastT);
-    if (dt > 0) this.velocity = dx / dt;
+    this.velocity = -dx / dt / 4;
     this.lastX = e.clientX;
     this.lastT = now;
     const moved = e.clientX - this.startX;
@@ -275,7 +276,7 @@ export class CarouselController {
 
     this.clickedCard = null;
     
-    if (Math.abs(this.velocity) > this.minVelocity) {
+    if (this.velocity !== 0) {
       this.applyInertia();
     } else {
       this.updateButtons();
@@ -284,21 +285,28 @@ export class CarouselController {
 
   applyInertia() {
     if (this.rafId) cancelAnimationFrame(this.rafId);
-    
-    const animate = () => {
-      this.velocity *= this.friction;
-      
-      const newScroll = this.scroller.scrollLeft - this.velocity;
-      this.scroller.scrollLeft = this.clamp(newScroll);
-      
-      if (Math.abs(this.velocity) > this.minVelocity) {
+    this.rafId = null;
+
+    const duration = Math.min(Math.abs(this.velocity) * 4000, 2000);
+    const startTime = performance.now();
+    const startScroll = this.scroller.scrollLeft;
+    const distance = this.velocity * duration / 2;
+
+    const animate = (now) => {
+      const progress = Math.min((now - startTime) / duration, 1);
+      const easedProgress = progress * (2 - progress);
+      this.scroller.scrollLeft = this.clamp(startScroll + distance * easedProgress);
+      this.targetScroll = this.scroller.scrollLeft;
+
+      if (progress < 1) {
         this.rafId = requestAnimationFrame(animate);
       } else {
         this.velocity = 0;
+        this.rafId = null;
         this.updateButtons();
       }
     };
-    
+
     this.rafId = requestAnimationFrame(animate);
   }
 
