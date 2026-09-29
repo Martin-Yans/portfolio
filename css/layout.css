@@ -45,19 +45,4 @@
 #projects h2 {
     margin-bottom: var(--spacing-xl);
 }
-@media (max-width: 499px) {
-  #projects.section {
-    height: 1000px;
-  }
-  #projects .container {
-    height: 100%;
-    padding: var(--spacing-lg) 0;
-    display: flex;
-    flex-direction: column;
-  }
-  #projects .carousel-wrapper {
-    flex-grow: 1;
-    min-height: 0; /* Fix flexbox behavior */
-  }
-}
 

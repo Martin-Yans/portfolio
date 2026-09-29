@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Une fois les éléments ajoutés, on active l'animation au scroll
             setupScrollAnimation();
+            setupCenterHighlight();
 
         } catch (error) {
             console.error("Impossible de charger les données de la timeline:", error);
@@ -104,6 +105,49 @@ document.addEventListener('DOMContentLoaded', () => {
         elementsToReveal.forEach(element => {
             observer.observe(element);
         });
+    };
+
+    const setupCenterHighlight = () => {
+        const timelineItems = Array.from(timelineContainer.querySelectorAll('.timeline-item'));
+        const mobileViewport = window.matchMedia('(max-width: 699px)');
+        let centeredItem = null;
+        let frameId = null;
+
+        const updateCenterHighlight = () => {
+            let closestItem = null;
+            let closestDistance = Infinity;
+
+            if (mobileViewport.matches) {
+                const viewportCenter = window.innerHeight / 2;
+                timelineItems.forEach(item => {
+                    const rect = item.getBoundingClientRect();
+                    if (rect.bottom <= 0 || rect.top >= window.innerHeight) return;
+
+                    const distance = Math.abs((rect.top + rect.bottom) / 2 - viewportCenter);
+                    if (distance < closestDistance) {
+                        closestDistance = distance;
+                        closestItem = item;
+                    }
+                });
+            }
+
+            if (closestItem === centeredItem) return;
+            centeredItem?.classList.remove('is-centered');
+            closestItem?.classList.add('is-centered');
+            centeredItem = closestItem;
+        };
+
+        const scheduleUpdate = () => {
+            if (frameId !== null) return;
+            frameId = requestAnimationFrame(() => {
+                frameId = null;
+                updateCenterHighlight();
+            });
+        };
+
+        window.addEventListener('scroll', scheduleUpdate, { passive: true });
+        window.addEventListener('resize', scheduleUpdate, { passive: true });
+        scheduleUpdate();
     };
 
     // Charge les données au chargement de la page
