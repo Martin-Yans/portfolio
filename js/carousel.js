@@ -35,6 +35,9 @@ export class CarouselController {
     this.lastT = 0;
     this.scrollStartX = 0;
     this.velocity = 0;
+    this.pointerId = null;
+    this.pendingPointerX = null;
+    this.dragRafId = null;
     this.clickedCard = null;
 
     this.init();
@@ -176,8 +179,9 @@ export class CarouselController {
       { passive: true }
     );
     this.viewport.addEventListener('pointerdown', (e) => this.onPointerDown(e), { passive: true });
-    window.addEventListener('pointermove', (e) => this.onPointerMove(e), { passive: true });
-    window.addEventListener('pointerup', (e) => this.onPointerUp(e), { passive: true });
+    this.viewport.addEventListener('pointermove', (e) => this.onPointerMove(e), { passive: true });
+    this.viewport.addEventListener('pointerup', (e) => this.onPointerUp(e), { passive: true });
+    this.viewport.addEventListener('pointercancel', (e) => this.onPointerCancel(e), { passive: true });
   }
 
   setupResizeObserver() {
@@ -259,12 +263,13 @@ export class CarouselController {
     this.scrollStartX = this.scroller.scrollLeft;
     this.velocity = 0;
 
-    if (this.rafId) cancelAnimationFrame(this.rafId);
+    this.cancelAnimation();
+    this.pointerId = e.pointerId;
     try { this.viewport.setPointerCapture(e.pointerId); } catch (_) { }
   }
 
   onPointerMove(e) {
-    if (!this.isDragging) return;
+    if (!this.isDragging || e.pointerId !== this.pointerId) return;
     
     const movedDistance = Math.abs(e.clientX - this.dragStartX);
     if (movedDistance < 5) return;
@@ -276,18 +281,26 @@ export class CarouselController {
     const now = performance.now();
     const dx = e.clientX - this.lastX;
     const dt = Math.max(1, now - this.lastT);
-    this.velocity = -dx / dt / 4;
+    const sampleVelocity = -dx / dt;
+    this.velocity = this.velocity * 0.7 + sampleVelocity * 0.3;
     this.lastX = e.clientX;
     this.lastT = now;
-    const moved = e.clientX - this.startX;
-    this.scroller.scrollLeft = this.clamp(this.scrollStartX - moved);
-    this.targetScroll = this.scroller.scrollLeft;
+    this.pendingPointerX = e.clientX;
+
+    if (!this.dragRafId) {
+      this.dragRafId = requestAnimationFrame(() => {
+        this.dragRafId = null;
+        this.applyPointerPosition();
+      });
+    }
   }
 
   onPointerUp(e) {
-    if (!this.isDragging) return;
+    if (!this.isDragging || e.pointerId !== this.pointerId) return;
     
     this.isDragging = false;
+    this.pointerId = null;
+    this.flushPointerPosition();
     
     if (!this.hasDragStarted && this.clickedCard) {
       this.clickedCard.click();
@@ -297,21 +310,47 @@ export class CarouselController {
 
     this.clickedCard = null;
     
-    if (this.velocity !== 0) {
+    if (Math.abs(this.velocity) > 0.02) {
       this.applyInertia();
     } else {
+      this.velocity = 0;
       this.updateButtons();
     }
   }
 
-  applyInertia() {
-    if (this.rafId) cancelAnimationFrame(this.rafId);
-    this.rafId = null;
+  onPointerCancel(e) {
+    if (!this.isDragging || e.pointerId !== this.pointerId) return;
+    this.isDragging = false;
+    this.pointerId = null;
+    this.pendingPointerX = null;
+    if (this.dragRafId) cancelAnimationFrame(this.dragRafId);
+    this.dragRafId = null;
+    this.velocity = 0;
+    this.clickedCard = null;
+    this.updateButtons();
+  }
 
-    const duration = Math.min(Math.abs(this.velocity) * 4000, 2000);
+  applyPointerPosition() {
+    if (this.pendingPointerX === null) return;
+    const moved = this.pendingPointerX - this.startX;
+    this.pendingPointerX = null;
+    this.scroller.scrollLeft = this.clamp(this.scrollStartX - moved);
+    this.targetScroll = this.scroller.scrollLeft;
+  }
+
+  flushPointerPosition() {
+    if (this.dragRafId) cancelAnimationFrame(this.dragRafId);
+    this.dragRafId = null;
+    this.applyPointerPosition();
+  }
+
+  applyInertia() {
+    this.cancelAnimation();
+
+    const duration = Math.min(Math.abs(this.velocity) * 1000, 2000);
     const startTime = performance.now();
     const startScroll = this.scroller.scrollLeft;
-    const distance = this.velocity * duration / 2;
+    const distance = this.velocity * duration / 8;
 
     const animate = (now) => {
       const progress = Math.min((now - startTime) / duration, 1);
